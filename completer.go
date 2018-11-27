@@ -9,8 +9,8 @@ import (
 
 // Completer represents one go-prompt completer.
 type Completer struct {
-	Commands map[string]*Cmd
-	Options  map[string]*Option
+	Commands map[string]*Command
+	Options  map[string]*Argument
 
 	// cache for speed
 	commandCache []prompt.Suggest
@@ -20,15 +20,15 @@ type Completer struct {
 // NewCompleter creates and returns a new *Completer.
 func NewCompleter() *Completer {
 	return &Completer{
-		Commands:     make(map[string]*Cmd),
-		Options:      make(map[string]*Option),
+		Commands:     make(map[string]*Command),
+		Options:      make(map[string]*Argument),
 		commandCache: make([]prompt.Suggest, 0),
 		optionsCache: make([]prompt.Suggest, 0),
 	}
 }
 
 // RegisterCommands adds one or more top-level commands to the completer.
-func (c *Completer) RegisterCommands(commands ...Cmd) error {
+func (c *Completer) RegisterCommands(commands ...Command) error {
 	for _, comm := range commands {
 		if _, exists := c.Commands[comm.Name]; exists {
 			return fmt.Errorf("command %s already exists", comm.Name)
@@ -39,7 +39,7 @@ func (c *Completer) RegisterCommands(commands ...Cmd) error {
 			if err != nil {
 				return err
 			}
-			err = comm.Completer.RegisterOptions(comm.Options...)
+			err = comm.Completer.RegisterOptions(comm.Arguments...)
 			if err != nil {
 				return err
 			}
@@ -54,7 +54,7 @@ func (c *Completer) RegisterCommands(commands ...Cmd) error {
 }
 
 // RegisterOptions adds one or more options to the completer.
-func (c *Completer) RegisterOptions(opts ...Option) error {
+func (c *Completer) RegisterOptions(opts ...Argument) error {
 	for _, opt := range opts {
 		if _, exists := c.Options[opt.Name]; exists {
 			return fmt.Errorf("option %s already exists", opt.Name)
@@ -104,7 +104,7 @@ func (c *Completer) ExecuteArgs(args []string) bool {
 			err = cmd.Executor(cmd.Completer.collectArguments(args[1:]))
 		}
 		if err != nil {
-			fmt.Printf("error encountered: %s", err.Error())
+			fmt.Printf("error encountered: %s\n", err.Error())
 			// TODO: Change error color here.
 			// Not sure how we can change color here unless add it as a field to
 			// the completer.
@@ -137,10 +137,10 @@ func (c *Completer) CompleteArgs(args []string) []prompt.Suggest {
 	if len(args) >= 2 {
 		optionName := args[len(args)-2]
 		if option, exists := c.Options[optionName]; exists {
-			if option.OptionCompleter == nil {
+			if option.ArgumentCompleter == nil {
 				return []prompt.Suggest{}
 			}
-			return c.optionValueFilter(args, option.OptionCompleter(optionName, args))
+			return c.optionValueFilter(args, option.ArgumentCompleter(optionName, args))
 		}
 	}
 

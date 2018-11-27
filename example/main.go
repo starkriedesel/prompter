@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/c-bata/go-prompt"
@@ -8,31 +9,78 @@ import (
 )
 
 func main() {
+	// Basic command
+	helloCmd := prompter.Command{
+		Name:        "hello",
+		Description: "print hello world",
+		Executor: func(_ prompter.CmdArgs) error {
+			fmt.Println("Hello World")
+			return nil
+		},
+	}
 
-	comp := prompter.NewCompleter()
+	// Command with 1 sub command
+	sayCmd := prompter.Command{
+		Name:        "say",
+		Description: "say some words",
+	}
+	fooSubCmd := prompter.Command{
+		Name:        "foo",
+		Description: "say foo",
+		Executor: func(_ prompter.CmdArgs) error {
+			fmt.Println("Prompter says \"foo\"")
+			return nil
+		},
+	}
+	sayCmd.AddSubCommands(fooSubCmd)
 
-	myCmd1 := prompter.Command("mycmd1", "mycmd1 description")
+	// Greet Command
+	nameArg := prompter.Argument{
+		Name:              "--name",
+		Description:       "your name",
+		ArgumentCompleter: nameCompletor,
+	}
+	greetCmd := prompter.Command{
+		Name:        "greet",
+		Description: "say a greeting",
+		Executor:    greetFunction,
+	}
+	greetCmd.AddArguments(nameArg)
 
-	subCmd1 := prompter.SubCommand("subcmd1", "subcmd1 description", subcmd1Executor)
-	subCmd1.AddOption("-arg1", "description for arg1", false, subcmd1Completer)
-	subCmd1.AddOption("-arg2", "description for arg2", false, subcmd1Completer)
-
-	subCmd2 := prompter.SubCommand("subcmd2", "subcmd2 description", subcmd2Executor)
-	subCmd2.AddOption("-arg1", "description for arg1", false, subcmd2Completer)
-	subCmd2.AddOption("-arg2", "description for arg2", false, subcmd2Completer)
-
+	// Exit command
 	exitCmd := prompter.ExitCommand("exit", "exit the application")
 
-	myCmd1.AddSubCommands(subCmd1, subCmd2)
+	// Create the prompter completer
+	completer := prompter.NewCompleter()
+	completer.RegisterCommands(helloCmd, sayCmd, greetCmd, exitCmd)
 
-	comp.RegisterCommands(myCmd1, exitCmd)
-
-	p := prompt.New(comp.Execute, comp.Complete,
+	// Start go-prompt
+	p := prompt.New(completer.Execute, completer.Complete,
 		prompt.OptionPrefix(">>> "),
 		prompt.OptionTitle("pewpew"),
 		prompt.OptionPrefixTextColor(prompt.White),
 	)
 	p.Run()
+}
+
+func greetFunction(args prompter.CmdArgs) error {
+	if !args.Contains("--name") {
+		return errors.New("must provide a name")
+	}
+	name, err := args.GetFirstValue("--name")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Hello to %s\n", name)
+	return nil
+}
+
+func nameCompletor(_ string, _ []string) []prompt.Suggest {
+	return []prompt.Suggest{
+		{Text: "alice"},
+		{Text: "bob"},
+		{Text: "charles"},
+	}
 }
 
 func subcmd1Executor(args prompter.CmdArgs) error {
@@ -50,22 +98,6 @@ func subcmd1Executor(args prompter.CmdArgs) error {
 	return nil
 }
 
-func subcmd1Completer(optName string, _ []string) []prompt.Suggest {
-	switch optName {
-	case "-arg1":
-		return []prompt.Suggest{
-			{Text: "arg1-option1", Description: "arg1-option1-description"},
-			{Text: "arg1-option2", Description: "arg1-option2-description"},
-		}
-	case "-arg2":
-		return []prompt.Suggest{
-			{Text: "arg2-option1", Description: "arg2-option1-description"},
-			{Text: "arg2-option2", Description: "arg2-option2-description"},
-		}
-	}
-	return []prompt.Suggest{}
-}
-
 func subcmd2Executor(args prompter.CmdArgs) error {
 	fmt.Printf("subcmd2 args = %s\n", args)
 	val1Arg1, err := args.GetFirstValue("-arg1")
@@ -81,7 +113,7 @@ func subcmd2Executor(args prompter.CmdArgs) error {
 	return nil
 }
 
-func subcmd2Completer(optName string, _ []string) []prompt.Suggest {
+func argCompleter(optName string, _ []string) []prompt.Suggest {
 	switch optName {
 	case "-arg1":
 		return []prompt.Suggest{
