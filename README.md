@@ -4,10 +4,10 @@ Helper for [go-prompt](https://github.com/c-bata/go-prompt/). Under heavy develo
 Thanks to @parsiya for taking my pile of code and turning it into something useful. Check out his [borrowedtime](https://github.com/parsiya/borrowedtime) app that uses prompter. 
 
 ## Example
-Main example is at [test/main.go](test/main.go).
+Main example is at [example/main.go](example/main.go).
 
 ## Usage
-The package was not designed to work in a vacuum. It's meant to be used in conjunction with `go-prompt`.
+The package was not designed to work in a vacuum. It's meant to be used in conjunction with [go-prompt](https://github.com/c-bata/go-prompt/).
 
 ### Creating Commands
 Commands are created with `Command` struct.
